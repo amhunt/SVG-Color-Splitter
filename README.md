@@ -20,9 +20,23 @@ You'll need to run `source .venv/bin/activate` each time you open a new terminal
 python3 split_svg_by_color.py <input.svg> [--outdir <directory>] [--max-colors <N>]
 ```
 
-### Example
+Use `--outdir` to write to a different folder:
 
-Try it on the included example:
+```bash
+python3 split_svg_by_color.py my_design.svg --outdir ./split
+```
+
+Use `--max-colors` to limit the number of output files. The most visually similar colors are merged first. Merged shapes are recolored to a single unified color per file. That color is determined by the dominant color of the merged shapes.
+
+```bash
+python3 split_svg_by_color.py my_design_with_many_colors.svg --max-colors 4
+```
+
+### Examples
+
+Try it on the included examples:
+
+#### 3-color flower
 
 ```bash
 python3 split_svg_by_color.py examples/simple/3_color_flower.svg --outdir examples/simple/output
@@ -34,17 +48,11 @@ python3 split_svg_by_color.py examples/simple/3_color_flower.svg --outdir exampl
 
 **Output** — one file per color in `examples/simple/output/`, all sharing the same bounding box so layers align:
 
-| `_red.svg` | `_firebrick.svg` | `_darkgreen.svg` |
-|:-:|:-:|:-:|
+|                                      `_red.svg`                                       |                                         `_firebrick.svg`                                          |                                          `_darkgreen.svg`                                          |
+| :-----------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------: | :------------------------------------------------------------------------------------------------: |
 | <img src="examples/simple/output/3_color_flower_red.svg" alt="Red layer" width="200"> | <img src="examples/simple/output/3_color_flower_firebrick.svg" alt="Firebrick layer" width="200"> | <img src="examples/simple/output/3_color_flower_darkgreen.svg" alt="Dark green layer" width="200"> |
 
-Use `--outdir` to write to a different folder:
-
-```bash
-python3 split_svg_by_color.py my_design.svg --outdir ./split
-```
-
-Use `--max-colors` to limit the number of output files. The most visually similar colors are merged first. Merged shapes are recolored to a single unified color per file:
+#### 10-color flower - using `--max-colors`
 
 ```bash
 python3 split_svg_by_color.py examples/max-colors/10_color_flower.svg --outdir examples/max-colors/output --max-colors 4
