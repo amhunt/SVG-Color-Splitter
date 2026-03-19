@@ -83,8 +83,9 @@ python3 split_svg_by_color.py examples/max-colors/10_color_flower.svg --outdir e
 
 
 
-### Example workflow importing generated color-specific SVGs into Bambu
-There may be a better workflow for this? But this is the fastest way I've found.
+### Importing into Bambu after generation
+See below GIF showing the import of the generated SVGs. There may be a better workflow for this? But this is the fastest I've found.
+![2026-03-19 00 33 26](https://github.com/user-attachments/assets/3f0e7904-bbc8-42e9-91a6-ec7826084f88)
 
 
 
