@@ -32,6 +32,19 @@ Use `--max-colors` to limit the number of output files. The most visually simila
 python3 split_svg_by_color.py my_design_with_many_colors.svg --max-colors 4
 ```
 
+
+## Details
+
+- Handles `<path>`, `<rect>`, `<circle>`, `<ellipse>`, `<polygon>`, `<polyline>`, `<line>`, `<text>`, `<tspan>`, and `<use>` elements
+- Groups shapes by fill color; stroke-only shapes (e.g. `fill="none" stroke="green"`) fall back to stroke color so they aren't lost
+- Resolves fill and stroke from attributes, inline `style=`, and inherited values from parent `<g>` groups
+- Normalizes equivalent color formats (`#000`, `black`, `rgb(0,0,0)` all group together)
+- Labels output files with the nearest CSS3 color name (e.g. `#fe0100` becomes `_red`, not `_fe0100`)
+- Shapes with no visible fill or stroke are excluded
+- Includes registration marks for slicer alignment (see "Registration Marks" section below)
+
+
+
 ### Examples
 
 Try it on the included examples:
@@ -68,15 +81,13 @@ python3 split_svg_by_color.py examples/max-colors/10_color_flower.svg --outdir e
 | :----------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------: |
 | <img src="examples/max-colors/output/10_color_flower_red.svg" alt="Red layer" width="200"> | <img src="examples/max-colors/output/10_color_flower_royalblue.svg" alt="Royal blue layer" width="200"> | <img src="examples/max-colors/output/10_color_flower_indigo.svg" alt="Indigo layer" width="200"> | <img src="examples/max-colors/output/10_color_flower_darkgreen.svg" alt="Dark green layer" width="200"> |
 
-## Details
 
-- Handles `<path>`, `<rect>`, `<circle>`, `<ellipse>`, `<polygon>`, `<polyline>`, `<line>`, `<text>`, `<tspan>`, and `<use>` elements
-- Groups shapes by fill color; stroke-only shapes (e.g. `fill="none" stroke="green"`) fall back to stroke color so they aren't lost
-- Resolves fill and stroke from attributes, inline `style=`, and inherited values from parent `<g>` groups
-- Normalizes equivalent color formats (`#000`, `black`, `rgb(0,0,0)` all group together)
-- Labels output files with the nearest CSS3 color name (e.g. `#fe0100` becomes `_red`, not `_fe0100`)
-- Shapes with no visible fill or stroke are excluded
-- Includes registration marks for slicer alignment (see below)
+
+### Example workflow importing generated color-specific SVGs into Bambu
+There may be a better workflow for this? But this is the fastest way I've found.
+
+
+
 
 ## Registration marks
 
