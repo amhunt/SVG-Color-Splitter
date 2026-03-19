@@ -23,16 +23,18 @@ python3 split_svg_by_color.py <input.svg> [--outdir <directory>] [--max-colors <
 ### Example
 
 ```bash
-python3 split_svg_by_color.py rose.svg
+python3 split_svg_by_color.py flower.svg
 ```
 
-If `rose.svg` contains black, red, and green shapes:
+**Input** — a single SVG with three colors:
 
-```
-rose_black.svg   (all black shapes)
-rose_red.svg     (all red shapes)
-rose_green.svg   (all green shapes)
-```
+<img src="examples/3-color-flower-svg.png" alt="Input: 3-color flower SVG" width="200">
+
+**Output** — one file per color, all sharing the same bounding box so layers align:
+
+| `_red.svg` | `_brick.svg` | `_green.svg` |
+|:-:|:-:|:-:|
+| <img src="examples/3-color-flower-svg_red.png" alt="Red layer" width="200"> | <img src="examples/3-color-flower-svg_brick.png" alt="Brick layer" width="200"> | <img src="examples/3-color-flower-svg_green.png" alt="Green layer" width="200"> |
 
 Use `--outdir` to write to a different folder:
 
