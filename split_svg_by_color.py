@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """
-Split an SVG into separate files grouped by fill color.
+Split an SVG into separate files grouped by color.
+
+Groups shapes by fill color. Shapes with no visible fill but a visible stroke
+are grouped by stroke color instead, so stroke-only elements (e.g. a stem
+drawn with stroke but no fill) aren't lost.
 
 Each output SVG preserves the original's viewBox and dimensions so the files
 can be superimposed. Output filenames follow the pattern:
@@ -117,25 +121,43 @@ def _parse_style(style_str: str) -> dict[str, str]:
     return props
 
 
-def _get_fill(elem: ET.Element) -> str | None:
-    """Extract the fill value from an element (attribute or inline style)."""
+def _get_prop(elem: ET.Element, prop: str) -> str | None:
+    """Extract a CSS property from an element (inline style takes precedence)."""
     style = elem.get("style", "")
     if style:
         props = _parse_style(style)
-        if "fill" in props:
-            return props["fill"]
-    return elem.get("fill")
+        if prop in props:
+            return props[prop]
+    return elem.get(prop)
 
 
-def _resolve_fill(elem: ET.Element, parent_map: dict) -> str:
-    """Walk up the tree to resolve the effective fill color."""
+def _resolve_prop(elem: ET.Element, parent_map: dict, prop: str,
+                  default: str) -> str:
+    """Walk up the tree to resolve an inherited CSS property."""
     node = elem
     while node is not None:
-        fill = _get_fill(node)
-        if fill is not None:
-            return _normalize_color(fill)
+        val = _get_prop(node, prop)
+        if val is not None:
+            return _normalize_color(val)
         node = parent_map.get(node)
-    return "#000000"  # SVG default fill is black
+    return default
+
+
+def _resolve_effective_color(elem: ET.Element, parent_map: dict) -> str | None:
+    """Return the color a shape should be grouped by.
+
+    Prefers fill; falls back to stroke when fill is none/transparent.
+    Returns None if the shape has no visible fill or stroke.
+    """
+    fill = _resolve_prop(elem, parent_map, "fill", "#000000")
+    if fill not in ("none", "transparent"):
+        return fill
+
+    stroke = _resolve_prop(elem, parent_map, "stroke", "none")
+    if stroke not in ("none", "transparent"):
+        return stroke
+
+    return None
 
 
 def _build_parent_map(root: ET.Element) -> dict[ET.Element, ET.Element]:
@@ -153,6 +175,39 @@ def _register_namespaces(svg_path: str) -> None:
             ET.register_namespace(prefix, uri)
         else:
             ET.register_namespace("", uri)
+
+
+REGISTRATION_MARK_RADIUS = 0.01
+
+
+def _parse_viewbox(root: ET.Element) -> tuple[float, float, float, float] | None:
+    """Return (min_x, min_y, width, height) from the viewBox, or None."""
+    vb = root.get("viewBox")
+    if not vb:
+        return None
+    parts = vb.split()
+    if len(parts) != 4:
+        return None
+    return tuple(float(p) for p in parts)  # type: ignore[return-value]
+
+
+def _add_registration_marks(root: ET.Element, color: str) -> None:
+    """Add tiny circles at opposite viewBox corners to anchor the bounding box.
+
+    Ensures every output file shares the same extents so slicers that ignore
+    viewBox (like Bambu Studio) still align the layers correctly.
+    """
+    vb = _parse_viewbox(root)
+    if vb is None:
+        return
+    min_x, min_y, w, h = vb
+    r = str(REGISTRATION_MARK_RADIUS)
+    for cx, cy in [(min_x, min_y), (min_x + w, min_y + h)]:
+        mark = ET.SubElement(root, f"{{{SVG_NS}}}circle")
+        mark.set("cx", str(cx))
+        mark.set("cy", str(cy))
+        mark.set("r", r)
+        mark.set("fill", color)
 
 
 def _prune_empty_groups(root: ET.Element) -> None:
@@ -182,13 +237,13 @@ def split_svg(svg_path: str, outdir: str | None = None) -> list[str]:
     shapes_by_color: dict[str, list[ET.Element]] = defaultdict(list)
     for elem in root.iter():
         if elem.tag in SHAPE_TAGS:
-            color = _resolve_fill(elem, parent_map)
-            if color == "none" or color == "transparent":
+            color = _resolve_effective_color(elem, parent_map)
+            if color is None:
                 continue
             shapes_by_color[color].append(elem)
 
     if not shapes_by_color:
-        print("No filled shapes found in the SVG.")
+        print("No visible shapes found in the SVG.")
         return []
 
     shape_ids: dict[str, set[int]] = {
@@ -224,6 +279,7 @@ def split_svg(svg_path: str, outdir: str | None = None) -> list[str]:
                     parent.remove(elem)
 
         _prune_empty_groups(clone_root)
+        _add_registration_marks(clone_root, color)
 
         label = _color_label(color)
         out_path = os.path.join(outdir, f"{stem}_{label}.svg")
@@ -238,7 +294,7 @@ def split_svg(svg_path: str, outdir: str | None = None) -> list[str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Split an SVG into per-fill-color SVGs."
+        description="Split an SVG into per-color SVGs."
     )
     parser.add_argument("svg", help="Path to the input SVG file")
     parser.add_argument(
