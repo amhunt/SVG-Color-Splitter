@@ -567,3 +567,104 @@ class TestMaxColors:
 
         files = output_files(tmp_path)
         assert "red" in files
+
+
+# ---------------------------------------------------------------------------
+# Filename collision: duplicate labels get a numeric suffix
+# ---------------------------------------------------------------------------
+
+
+class TestLabelCollision:
+    """Colors that map to the same CSS3 name get enumerated filenames."""
+
+    def test_two_colors_same_label_get_suffix(self, tmp_path):
+        body = (
+            '<circle cx="10" cy="10" r="5" fill="#ff0000"/>'  # → red
+            '<circle cx="20" cy="20" r="5" fill="#fe0100"/>'  # → also red
+        )
+        write_svg(tmp_path, body)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path))
+
+        files = output_files(tmp_path)
+        assert len(files) == 2
+        assert "red" in files
+        assert "red_2" in files
+
+    def test_three_colors_same_label(self, tmp_path):
+        body = (
+            '<circle cx="10" cy="10" r="5" fill="#ff0000"/>'  # → red
+            '<circle cx="20" cy="20" r="5" fill="#fe0100"/>'  # → red
+            '<circle cx="30" cy="30" r="5" fill="#fd0200"/>'  # → red
+        )
+        write_svg(tmp_path, body)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path))
+
+        files = output_files(tmp_path)
+        assert len(files) == 3
+        assert "red" in files
+        assert "red_2" in files
+        assert "red_3" in files
+
+    def test_no_suffix_when_labels_unique(self, tmp_path):
+        write_svg(tmp_path, RED_CIRCLE + GREEN_PATH)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path))
+
+        files = output_files(tmp_path)
+        assert "red" in files
+        assert "green" in files
+        assert not any("_2" in k for k in files)
+
+
+# ---------------------------------------------------------------------------
+# Recoloring: merged shapes use a unified color
+# ---------------------------------------------------------------------------
+
+
+class TestRecolorAfterMerge:
+    """After max-colors merging, all shapes in a file share one color."""
+
+    def test_merged_shapes_have_uniform_fill(self, tmp_path):
+        body = (
+            '<circle cx="10" cy="10" r="5" fill="#ff0000"/>'
+            '<circle cx="20" cy="20" r="5" fill="#dd0000"/>'
+        )
+        write_svg(tmp_path, body)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path),
+                  max_colors=1)
+
+        files = output_files(tmp_path)
+        assert len(files) == 1
+        shapes = parse_shapes(list(files.values())[0])
+        fills = {s.get("fill") for s in shapes}
+        assert len(fills) == 1, f"expected one unified fill, got {fills}"
+
+    def test_stroke_only_shapes_get_recolored(self, tmp_path):
+        body = (
+            '<line x1="0" y1="0" x2="50" y2="50" fill="none" stroke="#00aa00" stroke-width="2"/>'
+            '<line x1="0" y1="0" x2="50" y2="50" fill="none" stroke="#008800" stroke-width="2"/>'
+        )
+        write_svg(tmp_path, body)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path),
+                  max_colors=1)
+
+        files = output_files(tmp_path)
+        shapes = parse_shapes(list(files.values())[0])
+        strokes = {s.get("stroke") for s in shapes}
+        assert len(strokes) == 1, f"expected one unified stroke, got {strokes}"
+
+    def test_style_fill_gets_recolored(self, tmp_path):
+        body = (
+            '<rect x="0" y="0" width="10" height="10" style="fill:#ff0000"/>'
+            '<rect x="10" y="0" width="10" height="10" style="fill:#dd0000"/>'
+        )
+        write_svg(tmp_path, body)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path),
+                  max_colors=1)
+
+        files = output_files(tmp_path)
+        shapes = parse_shapes(list(files.values())[0])
+        for s in shapes:
+            style = s.get("style", "")
+            assert "fill:" in style
+            fill_val = [p.split(":")[1] for p in style.split(";") if "fill" in p][0]
+            assert fill_val == shapes[0].get("style", "").split("fill:")[1].split(";")[0]

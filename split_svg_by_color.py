@@ -251,6 +251,30 @@ def _merge_closest_colors(
     return merged
 
 
+def _set_prop(elem: ET.Element, prop: str, value: str) -> None:
+    """Set a CSS property on an element, updating style= if it's defined there."""
+    style = elem.get("style", "")
+    if style:
+        props = _parse_style(style)
+        if prop in props:
+            props[prop] = value
+            elem.set("style", "; ".join(f"{k}:{v}" for k, v in props.items()))
+            return
+    elem.set(prop, value)
+
+
+def _recolor_shapes(root: ET.Element, parent_map: dict, color: str) -> None:
+    """Rewrite every shape's fill (or stroke) to use a single unified color."""
+    for elem in root.iter():
+        if elem.tag not in SHAPE_TAGS:
+            continue
+        fill = _resolve_prop(elem, parent_map, "fill", "#000000")
+        if fill not in ("none", "transparent"):
+            _set_prop(elem, "fill", color)
+        else:
+            _set_prop(elem, "stroke", color)
+
+
 def _prune_empty_groups(root: ET.Element) -> None:
     """Recursively remove <g> elements that contain no children."""
     changed = True
@@ -299,6 +323,7 @@ def split_svg(svg_path: str, outdir: str | None = None,
     }
 
     written: list[str] = []
+    label_counts: dict[str, int] = {}
     for color, ids_set in shape_ids.items():
         clone = copy.deepcopy(tree)
         clone_root = clone.getroot()
@@ -326,9 +351,13 @@ def split_svg(svg_path: str, outdir: str | None = None,
                     parent.remove(elem)
 
         _prune_empty_groups(clone_root)
+        _recolor_shapes(clone_root, clone_parent_map, color)
         _add_registration_marks(clone_root, color)
 
         label = _color_label(color)
+        label_counts[label] = label_counts.get(label, 0) + 1
+        if label_counts[label] > 1:
+            label = f"{label}_{label_counts[label]}"
         out_path = os.path.join(outdir, f"{stem}_{label}.svg")
         clone.write(out_path, xml_declaration=True, encoding="unicode")
         written.append(out_path)
