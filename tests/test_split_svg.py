@@ -483,3 +483,87 @@ class TestRegistrationMarks:
         red_coords = {(m.get("cx"), m.get("cy")) for m in _find_reg_marks(files["red"])}
         green_coords = {(m.get("cx"), m.get("cy")) for m in _find_reg_marks(files["green"])}
         assert red_coords == green_coords
+
+
+# ---------------------------------------------------------------------------
+# max_colors: merge visually similar colors
+# ---------------------------------------------------------------------------
+
+
+class TestMaxColors:
+    """--max-colors merges the most similar color groups."""
+
+    def test_merges_four_colors_to_two(self, tmp_path):
+        body = RED_CIRCLE + GREEN_PATH + BLACK_ELLIPSE + BLUE_POLYGON
+        write_svg(tmp_path, body)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path),
+                  max_colors=2)
+
+        files = output_files(tmp_path)
+        assert len(files) == 2
+
+    def test_merges_similar_colors_first(self, tmp_path):
+        body = (
+            '<circle cx="10" cy="10" r="5" fill="#ff0000"/>'  # red
+            '<circle cx="20" cy="20" r="5" fill="#dd0000"/>'  # dark red
+            '<circle cx="30" cy="30" r="5" fill="#0000ff"/>'  # blue
+        )
+        write_svg(tmp_path, body)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path),
+                  max_colors=2)
+
+        files = output_files(tmp_path)
+        assert len(files) == 2
+        # Red and dark-red should merge; blue stays separate
+        assert "blue" in files
+
+    def test_max_colors_none_is_noop(self, tmp_path):
+        body = RED_CIRCLE + GREEN_PATH + BLACK_ELLIPSE
+        write_svg(tmp_path, body)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path),
+                  max_colors=None)
+
+        files = output_files(tmp_path)
+        assert len(files) == 3
+
+    def test_max_colors_ge_actual_is_noop(self, tmp_path):
+        body = RED_CIRCLE + GREEN_PATH
+        write_svg(tmp_path, body)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path),
+                  max_colors=10)
+
+        files = output_files(tmp_path)
+        assert len(files) == 2
+
+    def test_max_colors_one_merges_everything(self, tmp_path):
+        body = RED_CIRCLE + GREEN_PATH + BLUE_POLYGON
+        write_svg(tmp_path, body)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path),
+                  max_colors=1)
+
+        files = output_files(tmp_path)
+        assert len(files) == 1
+
+    def test_merged_file_has_all_shapes(self, tmp_path):
+        body = RED_CIRCLE + GREEN_PATH + BLUE_POLYGON
+        write_svg(tmp_path, body)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path),
+                  max_colors=1)
+
+        files = output_files(tmp_path)
+        only_file = list(files.values())[0]
+        assert len(parse_shapes(only_file)) == 3
+
+    def test_dominant_color_kept_as_label(self, tmp_path):
+        body = (
+            '<circle cx="10" cy="10" r="5" fill="red"/>'
+            '<circle cx="20" cy="20" r="5" fill="red"/>'
+            '<circle cx="30" cy="30" r="5" fill="red"/>'
+            '<circle cx="40" cy="40" r="5" fill="#dd0000"/>'  # near-red, 1 shape
+        )
+        write_svg(tmp_path, body)
+        split_svg(os.path.join(str(tmp_path), "input.svg"), str(tmp_path),
+                  max_colors=1)
+
+        files = output_files(tmp_path)
+        assert "red" in files

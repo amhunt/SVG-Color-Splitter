@@ -210,6 +210,47 @@ def _add_registration_marks(root: ET.Element, color: str) -> None:
         mark.set("fill", color)
 
 
+def _color_distance_sq(hex_a: str, hex_b: str) -> int:
+    """Squared Euclidean distance between two hex colors in RGB space."""
+    ra, ga, ba = webcolors.hex_to_rgb(hex_a)
+    rb, gb, bb = webcolors.hex_to_rgb(hex_b)
+    return (ra - rb) ** 2 + (ga - gb) ** 2 + (ba - bb) ** 2
+
+
+def _merge_closest_colors(
+    shapes_by_color: dict[str, list[ET.Element]],
+    max_colors: int,
+) -> dict[str, list[ET.Element]]:
+    """Iteratively merge the two most similar color groups until at the limit.
+
+    The smaller group is folded into the larger one; the larger group's hex
+    key is kept so the output filename reflects the dominant color.
+    """
+    merged: dict[str, list[ET.Element]] = {
+        c: list(elems) for c, elems in shapes_by_color.items()
+    }
+
+    while len(merged) > max_colors:
+        keys = list(merged.keys())
+        best_dist = float("inf")
+        best_pair = (keys[0], keys[1])
+        for i in range(len(keys)):
+            for j in range(i + 1, len(keys)):
+                d = _color_distance_sq(keys[i], keys[j])
+                if d < best_dist:
+                    best_dist = d
+                    best_pair = (keys[i], keys[j])
+
+        a, b = best_pair
+        if len(merged[a]) >= len(merged[b]):
+            keep, drop = a, b
+        else:
+            keep, drop = b, a
+        merged[keep].extend(merged.pop(drop))
+
+    return merged
+
+
 def _prune_empty_groups(root: ET.Element) -> None:
     """Recursively remove <g> elements that contain no children."""
     changed = True
@@ -222,7 +263,8 @@ def _prune_empty_groups(root: ET.Element) -> None:
                     changed = True
 
 
-def split_svg(svg_path: str, outdir: str | None = None) -> list[str]:
+def split_svg(svg_path: str, outdir: str | None = None,
+              max_colors: int | None = None) -> list[str]:
     svg_path = os.path.abspath(svg_path)
     stem = Path(svg_path).stem
     if outdir is None:
@@ -245,6 +287,11 @@ def split_svg(svg_path: str, outdir: str | None = None) -> list[str]:
     if not shapes_by_color:
         print("No visible shapes found in the SVG.")
         return []
+
+    if max_colors is not None and len(shapes_by_color) > max_colors:
+        original_count = len(shapes_by_color)
+        shapes_by_color = _merge_closest_colors(shapes_by_color, max_colors)
+        print(f"Merged {original_count} colors down to {len(shapes_by_color)}.")
 
     shape_ids: dict[str, set[int]] = {
         color: {id(e) for e in elems}
@@ -302,12 +349,19 @@ def main() -> None:
         default=None,
         help="Output directory (defaults to same directory as input)",
     )
+    parser.add_argument(
+        "--max-colors",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Limit output to N colors by merging the most similar groups",
+    )
     args = parser.parse_args()
 
     if not os.path.isfile(args.svg):
         parser.error(f"File not found: {args.svg}")
 
-    split_svg(args.svg, args.outdir)
+    split_svg(args.svg, args.outdir, max_colors=args.max_colors)
 
 
 if __name__ == "__main__":

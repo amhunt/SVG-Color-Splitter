@@ -17,7 +17,7 @@ You'll need to run `source .venv/bin/activate` each time you open a new terminal
 ## Usage
 
 ```bash
-python3 split_svg_by_color.py <input.svg> [--outdir <directory>]
+python3 split_svg_by_color.py <input.svg> [--outdir <directory>] [--max-colors <N>]
 ```
 
 ### Example
@@ -38,6 +38,12 @@ Use `--outdir` to write to a different folder:
 
 ```bash
 python3 split_svg_by_color.py rose.svg --outdir ./split
+```
+
+Use `--max-colors` to limit the number of output files. The most visually similar colors are merged first:
+
+```bash
+python3 split_svg_by_color.py rose.svg --max-colors 2
 ```
 
 ## Details
@@ -61,7 +67,7 @@ To fix this, each output file includes two tiny circles (radius 0.01 SVG units) 
 - **Stroke-only shapes won't print as geometry.** Slicers work with filled/closed paths. If your SVG has stroke-only elements (like a line drawn with `stroke` but `fill="none"`), the splitter keeps them in the correct color file, but you'll need to convert strokes to filled paths before the slicer can use them. In Illustrator: Object > Path > Outline Stroke. In Inkscape: Path > Stroke to Path.
 - **CSS `<style>` blocks and classes are not supported.** The splitter reads `fill`/`stroke` from element attributes and inline `style="..."` only. If your SVG uses `<style>.cls-1 { fill: red }</style>`, those styles won't be detected. Flatten styles to inline attributes before splitting (Illustrator does this by default on SVG export with "Inline Style" selected).
 - **Gradients and patterns are not handled.** Shapes with `fill="url(#gradient)"` won't match a solid color and will be grouped under a fallback label.
-- **Two near-identical colors produce separate files.** `#ff0000` and `#fe0100` are normalized to different hex values, so they get separate output files (even though both are labelled `_red`). If your design tool exports slightly-off colors, clean them up in the source SVG first.
+- **Two near-identical colors produce separate files.** `#ff0000` and `#fe0100` are normalized to different hex values, so they get separate output files (even though both are labelled `_red`). Use `--max-colors` to merge them automatically, or clean them up in the source SVG.
 - **Registration marks add two extra shapes per file.** At radius 0.01 they're invisible at any reasonable print scale, but they're technically in the SVG. If you need clean output without them, you can remove them manually or modify the script.
 
 ## Testing
