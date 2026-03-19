@@ -25,18 +25,18 @@ python3 split_svg_by_color.py <input.svg> [--outdir <directory>] [--max-colors <
 Try it on the included example:
 
 ```bash
-python3 split_svg_by_color.py examples/simple-3-color/3_color_flower.svg --outdir examples/simple-3-color/output
+python3 split_svg_by_color.py examples/simple/3_color_flower.svg --outdir examples/simple/output
 ```
 
-**Input** — `examples/simple-3-color/3_color_flower.svg`, a single SVG with three colors:
+**Input** — `examples/simple/3_color_flower.svg`, a single SVG with three colors:
 
-<img src="examples/simple-3-color/3-color-flower-svg.png" alt="Input: 3-color flower SVG" width="200">
+<img src="examples/simple/3_color_flower.svg" alt="Input: 3-color flower SVG" width="200">
 
-**Output** — one file per color in `examples/simple-3-color/output/`, all sharing the same bounding box so layers align:
+**Output** — one file per color in `examples/simple/output/`, all sharing the same bounding box so layers align:
 
 | `_red.svg` | `_firebrick.svg` | `_darkgreen.svg` |
 |:-:|:-:|:-:|
-| <img src="examples/simple-3-color/3-color-flower-svg_red.png" alt="Red layer" width="200"> | <img src="examples/simple-3-color/3-color-flower-svg_brick.png" alt="Firebrick layer" width="200"> | <img src="examples/simple-3-color/3-color-flower-svg_green.png" alt="Dark green layer" width="200"> |
+| <img src="examples/simple/output/3_color_flower_red.svg" alt="Red layer" width="200"> | <img src="examples/simple/output/3_color_flower_firebrick.svg" alt="Firebrick layer" width="200"> | <img src="examples/simple/output/3_color_flower_darkgreen.svg" alt="Dark green layer" width="200"> |
 
 Use `--outdir` to write to a different folder:
 
@@ -47,18 +47,18 @@ python3 split_svg_by_color.py my_design.svg --outdir ./split
 Use `--max-colors` to limit the number of output files. The most visually similar colors are merged first. Merged shapes are recolored to a single unified color per file:
 
 ```bash
-python3 split_svg_by_color.py examples/max-colors-10-color/10_color_flower.svg --outdir examples/max-colors-10-color/output --max-colors 4
+python3 split_svg_by_color.py examples/max-colors/10_color_flower.svg --outdir examples/max-colors/output --max-colors 4
 ```
 
 **Input** — a 10-color flower (reds/oranges for outer petals, blues/purples for inner, greens for stem):
 
-<img src="examples/max-colors-10-color/10_color_flower.svg" alt="Input: 10-color flower SVG" width="200">
+<img src="examples/max-colors/10_color_flower.svg" alt="Input: 10-color flower SVG" width="200">
 
 **Output** — 10 colors merged down to 4:
 
-| `_red.svg` | `_royalblue.svg` | `_indigo.svg` | `_darkgreen.svg` |
-|:-:|:-:|:-:|:-:|
-| <img src="examples/max-colors-10-color/output/10_color_flower_red.svg" alt="Red layer" width="200"> | <img src="examples/max-colors-10-color/output/10_color_flower_royalblue.svg" alt="Royal blue layer" width="200"> | <img src="examples/max-colors-10-color/output/10_color_flower_indigo.svg" alt="Indigo layer" width="200"> | <img src="examples/max-colors-10-color/output/10_color_flower_darkgreen.svg" alt="Dark green layer" width="200"> |
+|                                         `_red.svg`                                         |                                            `_royalblue.svg`                                             |                                          `_indigo.svg`                                           |                                            `_darkgreen.svg`                                             |
+| :----------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------: | :----------------------------------------------------------------------------------------------: | :-----------------------------------------------------------------------------------------------------: |
+| <img src="examples/max-colors/output/10_color_flower_red.svg" alt="Red layer" width="200"> | <img src="examples/max-colors/output/10_color_flower_royalblue.svg" alt="Royal blue layer" width="200"> | <img src="examples/max-colors/output/10_color_flower_indigo.svg" alt="Indigo layer" width="200"> | <img src="examples/max-colors/output/10_color_flower_darkgreen.svg" alt="Dark green layer" width="200"> |
 
 ## Details
 
